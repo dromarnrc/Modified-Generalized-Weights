@@ -1,0 +1,242 @@
+library(readxl)
+library(neuralnet)
+library(RSNNS)
+mydata <- read_xlsx("D:/ANN.xlsx")
+Inp <- ncol(mydata) - 1
+Nr_of_int <- Inp  * (Inp - 1)/2
+AE <- Inp + Nr_of_int  # all effects (main + interaction)
+NrHidden <- round(Inp * 1.6, 0)
+partition <- 0.75  #** partitioning ratio of data into train and test
+trainingIndex <- sample(1:nrow(mydata), partition * nrow(mydata))
+indx <- sample(1:nrow(mydata), 0.75 * nrow(mydata)) 
+trainingData <- data.frame(round(normalizeData(mydata[indx,],"0_1"),4)) 
+testingData <- data.frame(round(normalizeData(mydata[-indx,],"0_1"),4))
+names(trainingData)<-colnames(mydata)
+names(testingData)<- colnames(mydata)
+y <- colnames(trainingData[ncol(mydata)])
+x <- colnames(trainingData[-ncol(mydata)])
+formla <- as.formula(paste(y, paste(x, collapse = " + "), 
+                           sep = " ~ "))
+nn <- neuralnet(formla, data = trainingData, algorithm = "backprop", threshold = 0.01, learningrate = 0.01, 
+                hidden = NrHidden, act.fct = "logistic", linear.output = F)
+IH_W <- nn$weights[[1]][[1]]
+HO_W <- nn$weights[[1]][[2]]
+# ***********************
+HU <- NrHidden
+# hold bias and input values (bias = 1)
+Inputs <- array(1, dim = c(length(trainingIndex), Inp + 1))
+for (k in 1:length(trainingIndex)) {
+  for (l in 1:Inp) {
+    Inputs[k, l + 1] <- trainingData[k, l]
+  }
+}
+# calculate output of each hidden layer neuron
+HNO <- array(0, dim = c(length(trainingIndex), HU))
+Sigm <- array(0, dim = c(length(trainingIndex), HU))
+for (x in 1:HU) {
+  for (y in 1:length(trainingIndex)) {
+    for (z in 1:(Inp + 1)) {
+      HNO[y, x] <- HNO[y, x] + (Inputs[y, z] * IH_W[z, x])
+    }
+  }
+}
+Sigm <- 1/(1 + exp(-(HNO)))
+# ************ Calculate generalized weights
+GWtable <- array(0, dim = c(length(trainingIndex), 
+                            ncol(mydata) - 1))
+colnames(GWtable) <- colnames(mydata[-(ncol(mydata))])
+for (a in 1:Inp) {
+  for (b in 1:length(trainingIndex)) {
+    for (c in 1:HU) {
+      GWtable[b, a] <- GWtable[b, a] + (Sigm[b, c] * 
+                            (1 - Sigm[b, c]) * IH_W[a + 1, c] * HO_W[c + 1])
+    }
+  }
+}
+# *************** Hidden outputs for Main effect
+MainE <- array(0, dim = c(length(trainingIndex), HU, Inp))
+for (q in 1:Inp) {
+  for (r in 1:length(trainingIndex)) {
+    for (h in 1:HU) {
+      ssum = 0
+      for (i in 2:(Inp + 1)) {
+        ssum <- ssum + (Inputs[r, i] * IH_W[i, h])
+        MainE[r, h, q] <- HNO[r, h] - ssum + (Inputs[r, q + 1] *
+                                                IH_W[q + 1, h])
+      }
+    }
+  }
+}
+SigMainE <- 1/(1 + exp(-(MainE)))
+# ************ generalized weights for main effect
+MainGW <- array(0, dim = c(length(trainingIndex), ncol(mydata) - 1))
+colnames(MainGW) <- colnames(mydata[-(ncol(mydata))])
+for (s in 1:Inp) {
+  for (t in 1:length(trainingIndex)) {
+    for (u in 1:HU) {
+      MainGW[t, s] <- MainGW[t, s] + (SigMainE[t, u, s] * 
+                      (1 - SigMainE[t, u, s]) * IH_W[s + 1, u] * HO_W[u + 1])
+    }
+  }
+}
+# ******** if inputs = 2 do the following
+if (Inp == 2) {
+  pair<-list(c(1,2))
+  FMGW <- as.data.frame(MainGW)
+  MGW <- as.data.frame(GWtable)
+  Nr_of_int <- (Inp - 0) * (Inp - 1)/2
+  tableMEInt <- array(0, dim = c(3, (Inp + Nr_of_int)))
+  intmgw <- array(0, dim = c(length(trainingIndex), 1))
+  MESum <- c()
+  for (p in 1:length(trainingIndex)) {
+    MESum[p] <- FMGW[p, 1] + FMGW[p, 2]
+    intmgw[p, 1] <- intmgw[p, 1] + ((MGW[p, 1]+ MGW[p, 2]) - MESum[p])/2
+  }
+  MGWMEInt <- cbind(FMGW, intmgw)
+  totalvar = 0
+  totalsum = 0
+  for (n in 1:(Inp + Nr_of_int)) {
+    totalvar <- totalvar + var(MGWMEInt[, n])
+    totalsum <- totalsum + abs(sum(MGWMEInt[, n]))
+  }
+  for (m in 1:3) {
+    for (n in 1:(Inp + Nr_of_int)) {
+      if (m == 1) {
+        tableMEInt[m, n] <- round(abs(sum(MGWMEInt[, n]))/totalsum, 4)
+      } else if (m == 2) {
+        tableMEInt[m, n] <- round(var(MGWMEInt[, n]), 4)
+      } else {
+        tableMEInt[m, n] <- round(sum(MGWMEInt[, n]), 4)
+      }
+    }
+  }
+  # ***** Print results for best runs
+  mylist <- list()
+  int<-paste(colnames(mydata[1]), colnames(mydata[2]), sep = "*")
+  mylist <- c(colnames(mydata[1]),colnames(mydata[2]),int)
+  rownames(tableMEInt) <- c("Rel.Imp. based on 100%", "Variance", "Sum")
+  colnames(tableMEInt) <- mylist
+  print(tableMEInt)
+} else {
+  # ********* if inputs more than 2 do the following
+  # ********* hidden output for two way interaction
+  TwoWay <- array(0, dim = c(length(trainingIndex), HU, Inp * (Inp - 1)))
+  serial<-c(2:(Inp+1))
+  i=1
+  s<-c()
+  for (x in 2:(Inp+1)) {
+    a<-subset(serial,serial!=x)
+    for (y in a) {
+      b <-subset(serial,serial!=x & serial!=y)
+      for (z in rev(b)) {
+        s[i]<-z
+        i=i+1
+      }
+    }
+  }
+  for (q in 1:((Inp - 0) * (Inp - 1))) {
+    for (r in 1:length(trainingIndex)) {
+      ssum = 0
+      for (h in 1:HU) {
+        ssum <- ssum + (Inputs[r, s[q]] * IH_W[s[q], h])
+        TwoWay[r, h, q] <- HNO[r, h] - ssum
+      }
+    }
+  }
+  SigTwoWay <- 1/(1 + exp(-(TwoWay)))
+  # ********* GW for two way interaction
+  TwoWayGW <- array(0, dim = c(length(trainingIndex), Inp * (Inp - 1)))
+  i=1
+  s<-c()
+  for (x in 2:(Inp+1)) {
+    for (y in 1:(Inp-1)) {
+      s[i]<-x
+      i=i+1
+    }
+  }
+  for (q in 1:((Inp - 0) * (Inp - 1))) {
+    for (t in 1:length(trainingIndex)) {
+      for (u in 1:HU) {
+        TwoWayGW[t, q] <- TwoWayGW[t, q] + (SigTwoWay[t, u, q] * 
+                     (1 - SigTwoWay[t, u, q]) * IH_W[s[q], u] * HO_W[u + 1])
+      }
+    }
+  }
+  # ***** Main effect and Interaction based on sum
+  tableMEInt <- array(0, dim = c(3, Inp + Nr_of_int))
+  intmgw <- array(0, dim = c(length(trainingIndex), Nr_of_int))
+  MESum <- array(0, dim = c(length(trainingIndex), Nr_of_int))
+  i=1
+  s<-c()
+  pair<-array(0,dim=c((Inp*(Inp-1))/2,2))
+  for (x in 1:(Inp-1)) {
+    for (y in x:x) {
+      for (z in (y+1):Inp) {
+        pair[i,1]<-y
+        pair[i,2]<-z
+        i=i+1
+      }
+    }
+  }
+  for (x in 1:length(trainingIndex)) {
+    for (y in 1:Nr_of_int) {
+      MESum[x, y] <- MainGW[x, pair[y,1]] + MainGW[x, pair[y,2]]
+    }
+  }
+  i=1
+  s<-c(1:Inp)
+  pairs<-as.data.frame(array(0,dim=c(Inp*(Inp-1),2)))
+  for (x in 1:Inp) {
+    for (y in x:x) {
+      ss<-subset(s,s!=y)
+      for (z in ss) {
+        pairs[i,1]<-y
+        pairs[i,2]<-z
+        i=i+1
+      }
+    }
+  }
+s<-as.data.frame(array(0,dim=c((Inp*(Inp-1)/2),2)))
+  for (r in 1:(Inp*(Inp-1)/2)) {
+    f<-which(pairs[,1] == pair[r,1] & pairs[,2] == pair[r,2] | pairs[,1] == pair[r,2] & pairs[,2] == pair[r,1], arr.ind=TRUE)
+    s[r,1]<-f[1]
+    s[r,2]<-f[2]
+  }
+  
+  for (i in 1:Nr_of_int) {
+    for (p in 1:length(trainingIndex)) {
+      intmgw[p, i] <- intmgw[p, i] + ((TwoWayGW[p, s[i,1]] + 
+                                   TwoWayGW[p, s[i,2]]) - MESum[p, i])/2
+    }
+  }
+  # *******************************************
+  MGWMEInt <- cbind(MainGW, intmgw)
+  totalvar = 0
+  totalsum = 0
+  for (n in 1:(Inp + Nr_of_int)) {
+    totalvar <- totalvar + var(MGWMEInt[, n])
+    totalsum <- totalsum + abs(sum(MGWMEInt[, n]))
+  }
+  for (m in 1:3) {
+    for (n in 1:(Inp + Nr_of_int)) {
+      if (m == 1) {
+        tableMEInt[m, n] <- round(abs(sum(MGWMEInt[, n]))/totalsum, 4)
+      } else if (m == 2) {
+        tableMEInt[m, n] <- round(var(MGWMEInt[, n]), 4)
+      } else {
+        tableMEInt[m, n] <- round(sum(MGWMEInt[, n]), 4)
+      }
+    }
+  }
+  # Print results for best runs
+  mylist <- list()
+  for (x in 1:Nr_of_int) {
+    for (y in pair[x]) {
+      mylist[x] <- paste(colnames(mydata[pair[x,1]]), colnames(mydata[pair[x,2]]), sep = "*")
+    }
+  }
+  rownames(tableMEInt) <- c("Relative Importance", "Variance", "Sum")
+  colnames(tableMEInt) <- c(colnames(mydata[-(ncol(mydata))]), mylist)
+  print(tableMEInt)
+}  
+
