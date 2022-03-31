@@ -1,5 +1,6 @@
 library(readxl)
 library(neuralnet)
+library(RSNNS)
 mydata <- read_xlsx("D:/ANN.xlsx")
 Inp <- ncol(mydata) - 1
 Nr_of_int <- Inp  * (Inp - 1)/2
