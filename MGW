@@ -1,6 +1,5 @@
 library(readxl)
 library(neuralnet)
-library(RSNNS)
 mydata <- read_xlsx("D:/ANN.xlsx")
 Inp <- ncol(mydata) - 1
 Nr_of_int <- Inp  * (Inp - 1)/2
@@ -49,7 +48,7 @@ for (a in 1:Inp) {
   for (b in 1:length(trainingIndex)) {
     for (c in 1:HU) {
       GWtable[b, a] <- GWtable[b, a] + (Sigm[b, c] * 
-                            (1 - Sigm[b, c]) * IH_W[a + 1, c] * HO_W[c + 1])
+                                          (1 - Sigm[b, c]) * IH_W[a + 1, c] * HO_W[c + 1])
     }
   }
 }
@@ -75,7 +74,7 @@ for (s in 1:Inp) {
   for (t in 1:length(trainingIndex)) {
     for (u in 1:HU) {
       MainGW[t, s] <- MainGW[t, s] + (SigMainE[t, u, s] * 
-                      (1 - SigMainE[t, u, s]) * IH_W[s + 1, u] * HO_W[u + 1])
+                                        (1 - SigMainE[t, u, s]) * IH_W[s + 1, u] * HO_W[u + 1])
     }
   }
 }
@@ -158,7 +157,7 @@ if (Inp == 2) {
     for (t in 1:length(trainingIndex)) {
       for (u in 1:HU) {
         TwoWayGW[t, q] <- TwoWayGW[t, q] + (SigTwoWay[t, u, q] * 
-                     (1 - SigTwoWay[t, u, q]) * IH_W[s[q], u] * HO_W[u + 1])
+                                              (1 - SigTwoWay[t, u, q]) * IH_W[s[q], u] * HO_W[u + 1])
       }
     }
   }
@@ -196,7 +195,7 @@ if (Inp == 2) {
       }
     }
   }
-s<-as.data.frame(array(0,dim=c((Inp*(Inp-1)/2),2)))
+  s<-as.data.frame(array(0,dim=c((Inp*(Inp-1)/2),2)))
   for (r in 1:(Inp*(Inp-1)/2)) {
     f<-which(pairs[,1] == pair[r,1] & pairs[,2] == pair[r,2] | pairs[,1] == pair[r,2] & pairs[,2] == pair[r,1], arr.ind=TRUE)
     s[r,1]<-f[1]
@@ -206,7 +205,7 @@ s<-as.data.frame(array(0,dim=c((Inp*(Inp-1)/2),2)))
   for (i in 1:Nr_of_int) {
     for (p in 1:length(trainingIndex)) {
       intmgw[p, i] <- intmgw[p, i] + ((TwoWayGW[p, s[i,1]] + 
-                                   TwoWayGW[p, s[i,2]]) - MESum[p, i])/2
+                                         TwoWayGW[p, s[i,2]]) - MESum[p, i])/2
     }
   }
   # *******************************************
@@ -235,8 +234,24 @@ s<-as.data.frame(array(0,dim=c((Inp*(Inp-1)/2),2)))
       mylist[x] <- paste(colnames(mydata[pair[x,1]]), colnames(mydata[pair[x,2]]), sep = "*")
     }
   }
-  rownames(tableMEInt) <- c("Relative Importance", "Variance", "Sum")
+  rownames(tableMEInt) <- c("R.I. based on 100%", "Variance", "Sum")
   colnames(tableMEInt) <- c(colnames(mydata[-(ncol(mydata))]), mylist)
-  print(tableMEInt)
-}  
+  NN_Output <- predict(nn,testingData)
+  actual <- testingData[ncol(mydata)]
+  options(digits = 3)
+  df<-array(0,dim=c(1,AE))
+  colnames(df)=c(colnames(mydata[-(ncol(mydata))]), mylist)
+  for (r in 1:AE) {
+    df[1,r]<-round(tableMEInt[1,r]*(cor(NN_Output,actual))^2,4)
+  }
+  RS<-round(cor(NN_Output,actual)^2,3)
+  rownames(df)<-paste("R.I.based on R Sq.","(",RS,")", sep = "")
+  df1<-rbind(df,tableMEInt)
+  AllMainEffect<-rowSums(df1[,1:Inp])
+  AllInteractionEffect<-rowSums(df1[,(Inp + 1):ncol(df1)])
+  df1<-cbind(df1,Total.M.E=AllMainEffect,Total.I.E=AllInteractionEffect)
+  print(df1)
+}
+
+
 
