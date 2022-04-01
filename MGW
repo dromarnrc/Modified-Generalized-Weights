@@ -114,9 +114,23 @@ if (Inp == 2) {
   mylist <- list()
   int<-paste(colnames(mydata[1]), colnames(mydata[2]), sep = "*")
   mylist <- c(colnames(mydata[1]),colnames(mydata[2]),int)
-  rownames(tableMEInt) <- c("Rel.Imp. based on 100%", "Variance", "Sum")
+  rownames(tableMEInt) <- c("Rel.Imp. based on 100%", "Variance of MGW", "Sum of MGW")
   colnames(tableMEInt) <- mylist
-  print(tableMEInt)
+    NN_Output <- predict(nn,testingData)
+  actual <- testingData[ncol(mydata)]
+  options(digits = 3)
+  df<-array(0,dim = c(1,AE))
+  colnames(df) = mylist
+  for (r in 1:AE) {
+    df[1,r]<-round(tableMEInt[1,r]*(cor(NN_Output,actual))^2,4)
+  }
+  RS<-round(cor(NN_Output,actual)^2,3)
+  rownames(df)<-paste("Rel.Imp.based on R Sq.","(",RS,")", sep = "")
+  df1<-rbind(df,tableMEInt)
+  AllMainEffect<-rowSums(df1[,1:Inp])
+  AllInteractionEffect<-df1[,3]
+  df1<-cbind(df1,Total.M.E=AllMainEffect,Total.I.E=AllInteractionEffect)
+  print(df1)
 } else {
   # ********* if inputs more than 2 do the following
   # ********* hidden output for two way interaction
@@ -235,7 +249,7 @@ if (Inp == 2) {
       mylist[x] <- paste(colnames(mydata[pair[x,1]]), colnames(mydata[pair[x,2]]), sep = "*")
     }
   }
-  rownames(tableMEInt) <- c("R.I. based on 100%", "Variance", "Sum")
+  rownames(tableMEInt) <- c("Rel.Imp. based on 100%", "Variance of MGW", "Sum of MGW")
   colnames(tableMEInt) <- c(colnames(mydata[-(ncol(mydata))]), mylist)
   NN_Output <- predict(nn,testingData)
   actual <- testingData[ncol(mydata)]
@@ -246,7 +260,7 @@ if (Inp == 2) {
     df[1,r]<-round(tableMEInt[1,r]*(cor(NN_Output,actual))^2,4)
   }
   RS<-round(cor(NN_Output,actual)^2,3)
-  rownames(df)<-paste("R.I.based on R Sq.","(",RS,")", sep = "")
+  rownames(df)<-paste("Rel.Imp.based on R Sq.","(",RS,")", sep = "")
   df1<-rbind(df,tableMEInt)
   AllMainEffect<-rowSums(df1[,1:Inp])
   AllInteractionEffect<-rowSums(df1[,(Inp + 1):ncol(df1)])
