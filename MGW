@@ -15,8 +15,7 @@ names(trainingData)<-colnames(mydata)
 names(testingData)<- colnames(mydata)
 y <- colnames(trainingData[ncol(mydata)])
 x <- colnames(trainingData[-ncol(mydata)])
-formla <- as.formula(paste(y, paste(x, collapse = " + "), 
-                           sep = " ~ "))
+formla <- as.formula(paste(y, paste(x, collapse = " + "), sep = " ~ "))
 nn <- neuralnet(formla, data = trainingData, algorithm = "backprop", threshold = 0.01, learningrate = 0.01, 
                 hidden = NrHidden, act.fct = "logistic", linear.output = F)
 IH_W <- nn$weights[[1]][[1]]
@@ -48,8 +47,7 @@ colnames(GWtable) <- colnames(mydata[-(ncol(mydata))])
 for (a in 1:Inp) {
   for (b in 1:length(trainingIndex)) {
     for (c in 1:HU) {
-      GWtable[b, a] <- GWtable[b, a] + (Sigm[b, c] * 
-                                          (1 - Sigm[b, c]) * IH_W[a + 1, c] * HO_W[c + 1])
+      GWtable[b, a] <- GWtable[b, a] + (Sigm[b, c] * (1 - Sigm[b, c]) * IH_W[a + 1, c] * HO_W[c + 1])
     }
   }
 }
@@ -61,8 +59,7 @@ for (q in 1:Inp) {
       ssum = 0
       for (i in 2:(Inp + 1)) {
         ssum <- ssum + (Inputs[r, i] * IH_W[i, h])
-        MainE[r, h, q] <- HNO[r, h] - ssum + (Inputs[r, q + 1] *
-                                                IH_W[q + 1, h])
+        MainE[r, h, q] <- HNO[r, h] - ssum + (Inputs[r, q + 1] * IH_W[q + 1, h])
       }
     }
   }
@@ -74,8 +71,7 @@ colnames(MainGW) <- colnames(mydata[-(ncol(mydata))])
 for (s in 1:Inp) {
   for (t in 1:length(trainingIndex)) {
     for (u in 1:HU) {
-      MainGW[t, s] <- MainGW[t, s] + (SigMainE[t, u, s] * 
-                                        (1 - SigMainE[t, u, s]) * IH_W[s + 1, u] * HO_W[u + 1])
+      MainGW[t, s] <- MainGW[t, s] + (SigMainE[t, u, s] * (1 - SigMainE[t, u, s]) * IH_W[s + 1, u] * HO_W[u + 1])
     }
   }
 }
@@ -171,8 +167,7 @@ if (Inp == 2) {
   for (q in 1:((Inp - 0) * (Inp - 1))) {
     for (t in 1:length(trainingIndex)) {
       for (u in 1:HU) {
-        TwoWayGW[t, q] <- TwoWayGW[t, q] + (SigTwoWay[t, u, q] * 
-                                              (1 - SigTwoWay[t, u, q]) * IH_W[s[q], u] * HO_W[u + 1])
+        TwoWayGW[t, q] <- TwoWayGW[t, q] + (SigTwoWay[t, u, q] * (1 - SigTwoWay[t, u, q]) * IH_W[s[q], u] * HO_W[u + 1])
       }
     }
   }
@@ -219,8 +214,7 @@ if (Inp == 2) {
   
   for (i in 1:Nr_of_int) {
     for (p in 1:length(trainingIndex)) {
-      intmgw[p, i] <- intmgw[p, i] + ((TwoWayGW[p, s[i,1]] + 
-                                         TwoWayGW[p, s[i,2]]) - MESum[p, i])/2
+      intmgw[p, i] <- intmgw[p, i] + ((TwoWayGW[p, s[i,1]] + TwoWayGW[p, s[i,2]]) - MESum[p, i])/2
     }
   }
   # *******************************************
