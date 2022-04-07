@@ -6,7 +6,7 @@ How to use this code :
 
 Step #1: Create an Excel file containing data of input variables and 1 output (for example x1,x2,x3,x4,y).
 
-![4-7-2022 8-32-08 PM](https://user-images.githubusercontent.com/95976623/162273662-54d26211-aa2b-4941-a2f6-4d27ffae8e66.jpg)
+![4-7-2022 8-32-08 PM](https://user-images.githubusercontent.com/95976623/162275612-d941eab0-1dc3-4737-a30b-79f8fb11f979.jpg)
 
 
 Step #2: install the following libraries using the command 
