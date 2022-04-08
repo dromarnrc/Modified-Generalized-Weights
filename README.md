@@ -1,6 +1,6 @@
 # Modified-Generalized-Weights
 A new method for modeling main effects and interactions of input variables in Artificial Neural Networks
-This code is opened for any number of inputs. 
+This code is opened for any number of inputs but used with one hidden layer. 
 
 How to use this code :
 
@@ -12,7 +12,9 @@ Step #1: Create an Excel file containing data of input variables and 1 output (f
 Step #2: install the following libraries using the command 
 
 install.packages("readxl")
-install.packages("neuralnet") 
+
+install.packages("neuralnet")
+
 install.packages("RSNNS") 
 
 library(readxl) for reading Excel files;
