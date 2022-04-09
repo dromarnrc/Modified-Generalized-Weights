@@ -15,11 +15,11 @@ names(testingData)<- colnames(mydata)
 y <- colnames(trainingData[ncol(mydata)])
 x <- colnames(trainingData[-ncol(mydata)])
 formla <- as.formula(paste(y, paste(x, collapse = " + "), sep = " ~ "))
-nn <- neuralnet(formla, data = trainingData, algorithm = "backprop", threshold = 0.01, learningrate = 0.01, 
-                hidden = 3, act.fct = "logistic", linear.output = F)
+nn <- neuralnet(formla, data = trainingData, algorithm = "backprop", threshold = 0.01, 
+                learningrate = 0.01, hidden = 3, act.fct = "logistic", linear.output = F)
 IH_W <- nn$weights[[1]][[1]]
 HO_W <- nn$weights[[1]][[2]]
-# ***********************
+# Capture the number of neurons in case of one or more hidden layers
 if(length(nn$call$hidden) == 1){
   HU <- nn$call$hidden
  } else {
@@ -32,7 +32,7 @@ for (k in 1:length(trainingIndex)) {
     Inputs[k, l + 1] <- trainingData[k, l]
   }
 }
-# calculate output of each hidden layer neuron
+# calculate output of each neuron in hidden layer 
 HNO <- array(0, dim = c(length(trainingIndex), HU))
 Sigm <- array(0, dim = c(length(trainingIndex), HU))
 for (x in 1:HU) {
@@ -54,7 +54,7 @@ for (a in 1:Inp) {
     }
   }
 }
-# *************** Hidden outputs for Main effect
+# *************** output of hidden neurons for Main effect
 MainE <- array(0, dim = c(length(trainingIndex), HU, Inp))
 for (q in 1:Inp) {
   for (r in 1:length(trainingIndex)) {
@@ -84,13 +84,14 @@ if (Inp == 2) {
   FMGW <- as.data.frame(MainGW)
   MGW <- as.data.frame(GWtable)
   Nr_of_int <- (Inp - 0) * (Inp - 1)/2
-  tableMEInt <- array(0, dim = c(3, (Inp + Nr_of_int)))
+  tableMEInt <- array(0, dim = c(2, (Inp + Nr_of_int)))
   intmgw <- array(0, dim = c(length(trainingIndex), 1))
   MESum <- c()
   for (p in 1:length(trainingIndex)) {
     MESum[p] <- FMGW[p, 1] + FMGW[p, 2]
     intmgw[p, 1] <- intmgw[p, 1] + ((MGW[p, 1]+ MGW[p, 2]) - MESum[p])/2
   }
+  # ************* calculate relative importance and variance 
   MGWMEInt <- cbind(FMGW, intmgw)
   totalvar = 0
   totalsum = 0
@@ -98,24 +99,22 @@ if (Inp == 2) {
     totalvar <- totalvar + var(MGWMEInt[, n])
     totalsum <- totalsum + abs(sum(MGWMEInt[, n]))
   }
-  for (m in 1:3) {
+  for (m in 1:2) {
     for (n in 1:(Inp + Nr_of_int)) {
       if (m == 1) {
         tableMEInt[m, n] <- round(abs(sum(MGWMEInt[, n]))/totalsum, 4)
-      } else if (m == 2) {
-        tableMEInt[m, n] <- round(var(MGWMEInt[, n]), 4)
       } else {
-        tableMEInt[m, n] <- round(sum(MGWMEInt[, n]), 4)
+        tableMEInt[m, n] <- round(var(MGWMEInt[, n]), 4)
       }
     }
   }
-  # ***** Print results for best runs
+  # *********** Print results in case of 2 inputs ****************
   mylist <- list()
   int<-paste(colnames(mydata[1]), colnames(mydata[2]), sep = "*")
   mylist <- c(colnames(mydata[1]),colnames(mydata[2]),int)
-  rownames(tableMEInt) <- c("Rel.Imp. based on 100%", "Variance of MGW", "Sum of MGW")
+  rownames(tableMEInt) <- c("Rel.Imp. based on 100%", "Variance of MGW")
   colnames(tableMEInt) <- mylist
-    NN_Output <- predict(nn,testingData)
+  NN_Output <- predict(nn,testingData)
   actual <- testingData[ncol(mydata)]
   options(digits = 3)
   df<-array(0,dim = c(1,AE))
@@ -131,8 +130,8 @@ if (Inp == 2) {
   df1<-cbind(df1,Total.M.E=AllMainEffect,Total.I.E=AllInteractionEffect)
   print(df1)
 } else {
-  # ********* if inputs more than 2 do the following
-  # ********* hidden output for two way interaction
+# ********* if inputs more than 2 do the following *****************
+  # ********* hidden output for two way interaction *****************
   TwoWay <- array(0, dim = c(length(trainingIndex), HU, Inp * (Inp - 1)))
   serial<-c(2:(Inp+1))
   i=1
@@ -157,7 +156,7 @@ if (Inp == 2) {
     }
   }
   SigTwoWay <- 1/(1 + exp(-(TwoWay)))
-  # ********* GW for two way interaction
+  # ********* Generalized Weights for two way interaction
   TwoWayGW <- array(0, dim = c(length(trainingIndex), Inp * (Inp - 1)))
   i=1
   s<-c()
@@ -175,7 +174,7 @@ if (Inp == 2) {
     }
   }
   # ***** Main effect and Interaction based on sum
-  tableMEInt <- array(0, dim = c(3, Inp + Nr_of_int))
+  tableMEInt <- array(0, dim = c(2, Inp + Nr_of_int))
   intmgw <- array(0, dim = c(length(trainingIndex), Nr_of_int))
   MESum <- array(0, dim = c(length(trainingIndex), Nr_of_int))
   i=1
@@ -220,7 +219,7 @@ if (Inp == 2) {
       intmgw[p, i] <- intmgw[p, i] + ((TwoWayGW[p, s[i,1]] + TwoWayGW[p, s[i,2]]) - MESum[p, i])/2
     }
   }
-  # *******************************************
+  # ************* calculate relative importance and variance 
   MGWMEInt <- cbind(MainGW, intmgw)
   totalvar = 0
   totalsum = 0
@@ -228,25 +227,23 @@ if (Inp == 2) {
     totalvar <- totalvar + var(MGWMEInt[, n])
     totalsum <- totalsum + abs(sum(MGWMEInt[, n]))
   }
-  for (m in 1:3) {
+  for (m in 1:2) {
     for (n in 1:(Inp + Nr_of_int)) {
       if (m == 1) {
         tableMEInt[m, n] <- round(abs(sum(MGWMEInt[, n]))/totalsum, 4)
-      } else if (m == 2) {
-        tableMEInt[m, n] <- round(var(MGWMEInt[, n]), 4)
       } else {
-        tableMEInt[m, n] <- round(sum(MGWMEInt[, n]), 4)
-      }
+        tableMEInt[m, n] <- round(var(MGWMEInt[, n]), 4)
+      } 
     }
   }
-  # Print results for best runs
+  # **************** Print results ***************
   mylist <- list()
   for (x in 1:Nr_of_int) {
     for (y in pair[x]) {
       mylist[x] <- paste(colnames(mydata[pair[x,1]]), colnames(mydata[pair[x,2]]), sep = "*")
     }
   }
-  rownames(tableMEInt) <- c("Rel.Imp. based on 100%", "Variance of MGW", "Sum of MGW")
+  rownames(tableMEInt) <- c("Rel.Imp. based on 100%", "Variance of MGW")
   colnames(tableMEInt) <- c(colnames(mydata[-(ncol(mydata))]), mylist)
   NN_Output <- predict(nn,testingData)
   actual <- testingData[ncol(mydata)]
@@ -262,8 +259,5 @@ if (Inp == 2) {
   AllMainEffect<-rowSums(df1[,1:Inp])
   AllInteractionEffect<-rowSums(df1[,(Inp + 1):ncol(df1)])
   df1<-cbind(df1,Total.M.E=AllMainEffect,Total.I.E=AllInteractionEffect)
-    print(df1[1:3,])
+    print(df1)
 }
-
-
-
