@@ -262,11 +262,7 @@ if (Inp == 2) {
   AllMainEffect<-rowSums(df1[,1:Inp])
   AllInteractionEffect<-rowSums(df1[,(Inp + 1):ncol(df1)])
   df1<-cbind(df1,Total.M.E=AllMainEffect,Total.I.E=AllInteractionEffect)
-    if(length(nn$call$hidden) > 2){
-    print(df1[1:2,])
-  } else {
-    print(df1)
-  }
+    print(df1[1:3,])
 }
 
 
