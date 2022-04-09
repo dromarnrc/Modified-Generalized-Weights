@@ -5,7 +5,6 @@ mydata <- read_xlsx(file.choose())
 Inp <- ncol(mydata) - 1
 Nr_of_int <- Inp  * (Inp - 1)/2
 AE <- Inp + Nr_of_int  # all effects (main + interaction)
-NrHidden <- round(Inp * 1.6, 0)
 partition <- 0.75  #** partitioning ratio of data into train and test
 trainingIndex <- sample(1:nrow(mydata), partition * nrow(mydata))
 indx <- sample(1:nrow(mydata), 0.75 * nrow(mydata)) 
@@ -17,11 +16,15 @@ y <- colnames(trainingData[ncol(mydata)])
 x <- colnames(trainingData[-ncol(mydata)])
 formla <- as.formula(paste(y, paste(x, collapse = " + "), sep = " ~ "))
 nn <- neuralnet(formla, data = trainingData, algorithm = "backprop", threshold = 0.01, learningrate = 0.01, 
-                hidden = NrHidden, act.fct = "logistic", linear.output = F)
+                hidden = 3, act.fct = "logistic", linear.output = F)
 IH_W <- nn$weights[[1]][[1]]
 HO_W <- nn$weights[[1]][[2]]
 # ***********************
-HU <- NrHidden
+if(length(nn$call$hidden) == 1){
+  HU <- nn$call$hidden
+ } else {
+   HU <- nn$call$hidden[[2]]
+}
 # hold bias and input values (bias = 1)
 Inputs <- array(1, dim = c(length(trainingIndex), Inp + 1))
 for (k in 1:length(trainingIndex)) {
@@ -259,7 +262,11 @@ if (Inp == 2) {
   AllMainEffect<-rowSums(df1[,1:Inp])
   AllInteractionEffect<-rowSums(df1[,(Inp + 1):ncol(df1)])
   df1<-cbind(df1,Total.M.E=AllMainEffect,Total.I.E=AllInteractionEffect)
-  print(df1)
+    if(length(nn$call$hidden) > 2){
+    print(df1[1:2,])
+  } else {
+    print(df1)
+  }
 }
 
 
