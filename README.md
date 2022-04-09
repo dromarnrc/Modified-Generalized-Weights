@@ -30,9 +30,10 @@ Step #3: Copy the code to R source window if you have installed R studio, or cop
 
 Step #4: select all the code by right click  on R source window then choose select all, then hit the (run) button.You will be notified to choose your file. Once you have chose your file, you will see the results in R console as the following:
 
-![4-7-2022 8-35-20 PM](https://user-images.githubusercontent.com/95976623/162274078-bc3a30f1-e36b-4dd0-9c5d-08b3a7d08731.jpg)
+![162274078-bc3a30f1-e36b-4dd0-9c5d-08b3a7d08731](https://user-images.githubusercontent.com/95976623/162579283-27ae265d-13b4-4c25-8b24-171a64cef85b.jpg)
 
-The results show the relative importance of each input based on R square and as a percent as well as both variance and the sum of the modified generalized weights.
-The sign of the sum refers to direction of the effect. When the sign of the main effect is negative this means that when the iput increases the output decreases. If the sign of an interacton is negative this means that when an input increases the effect of the other input on the output decreases. Also, the results show the total main effects and the total interaction effects in the last two columns.
+
+The results show the relative importance of each input based on R square and based on 100% as well as the variance of the modified generalized weights.
+Also, the results show the total main effects and the total interaction effects in the last two columns.
 
 
