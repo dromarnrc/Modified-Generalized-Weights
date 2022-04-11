@@ -1,6 +1,6 @@
 # Modified-Generalized-Weights
 A new method for modeling main effects and interactions of input variables in Artificial Neural Networks
-This code is opened for any number of inputs. 
+This code is opened for many inputs and one hidden layer. 
 
 How to use this code :
 
