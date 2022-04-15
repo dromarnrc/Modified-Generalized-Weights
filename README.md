@@ -28,7 +28,7 @@ Step #3: Copy the code to R source window if you have installed R studio, or cop
 ![4-7-2022 8-39-52 PM](https://user-images.githubusercontent.com/95976623/162273927-fdd4cea0-6958-4ec1-a5b8-dafd7514ee33.jpg)
 
 
-Step #4: select all the code by right click  on R source window then choose select all, then hit the (run) button.You will be notified to choose your file. Once you have chose your file, you will see the results in R console as the following:
+Step #4: select all the code by right click  on R source window then choose select all, then hit the (run) button.You will be notified to choose your file. Once you have chosen your file, you will see the results in R console as the following:
 
 ![162274078-bc3a30f1-e36b-4dd0-9c5d-08b3a7d08731](https://user-images.githubusercontent.com/95976623/162579283-27ae265d-13b4-4c25-8b24-171a64cef85b.jpg)
 
