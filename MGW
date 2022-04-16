@@ -1,7 +1,7 @@
 library(readxl)
 library(neuralnet)
 library(RSNNS)
-mydata <- read_xlsx("D:/ANN.xlsx")
+mydata <- read_xlsx(file.choose())
 Inp <- base::ncol(data) - 1
   Nr_of_int <- Inp  * (Inp - 1)/2
   AE <- Inp + Nr_of_int  # all effects (main + interaction)
