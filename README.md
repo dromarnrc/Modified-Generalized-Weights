@@ -33,7 +33,7 @@ Step #4: select all the code by right click  on R source window then choose sele
 ![162274078-bc3a30f1-e36b-4dd0-9c5d-08b3a7d08731](https://user-images.githubusercontent.com/95976623/162579283-27ae265d-13b4-4c25-8b24-171a64cef85b.jpg)
 
 
-The results show the relative importance of main effects (direct effects) of each input and the two way interaction effects between each pair of the input variables. The results are displayed based on R square and recalculated based on 100% for comparison. Also, the variance of the modified generalized weights is calculates.
+The results show the relative importance of main effects (direct effects) of each input and the two way interaction effects between each pair of the input variables. The results are displayed based on R square and recalculated based on 100% for comparison. Also, the variance of the modified generalized weights is calculated.
 Additionally, the results show the total main effects and the total interaction effects in the last two columns. You can run the code many times by using for loop function to calculate the mean and the standard error.
 
 
