@@ -1,6 +1,6 @@
 # Modified-Generalized-Weights
 A new method for modeling main effects and interactions of input variables in Artificial Neural Networks (ANNs).
-This code can be used for many inputs and one output and hidden layer. ANNs with single hidden layer are suitable for regression problems. While ANNs with many hidden layers are suitable for classification problems as ANNs need to comprehend something extremely convoluted, relevant, or non-self-evident, like image recognition.
+This code can be used for many inputs and one output and one hidden layer as interaction among inputs is assumed to occur in the first hidden layer. ANNs with one hidden layer are suitable for regression problems. While ANNs with many hidden layers are suitable for classification problems as ANNs need to comprehend something extremely convoluted, relevant, or non-self-evident, like image recognition.
  
 How to use this code :
 
