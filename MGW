@@ -1,4 +1,4 @@
-library(readxl)
+library(openxlsx)
 library(neuralnet)
 library(RSNNS)
 mydata <- read.xlsx(file.choose())
