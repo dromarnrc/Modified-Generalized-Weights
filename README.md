@@ -11,13 +11,13 @@ Step #1: Create an Excel file containing data of input variables and 1 output (f
 
 Step #2: install the following libraries using the command 
 
-install.packages("readxl")
+install.packages("openxlsx")
 
 install.packages("neuralnet")
 
 install.packages("RSNNS") 
 
-library(readxl) for reading Excel files;
+library(openxlsx) for reading Excel files;
 
 library(neuralnet) for running neural network;
 
