@@ -270,8 +270,9 @@ if (Inp == 2) {
 se<-as.data.frame(se)
 x.bar = apply(se,2,mean)
 x.se = apply(se,2,sd)/sqrt(AE)
-mse <- data.frame(xbar=x.bar,xse=x.se,Sum=df1[4,1:AE])
+mse <- data.frame(RI=x.bar,se=x.se,Sum=df1[4,1:AE])
 rownames(mse)<-colnames(df)
+print(mse)
 
 plotnet(nn, alpha.val = 0.5, apad_x = 0.8, max_sp = F, pos_col="blue", neg_col = "grey", 
         circle_col = rainbow(NrHidden), bord_col = 'black')
