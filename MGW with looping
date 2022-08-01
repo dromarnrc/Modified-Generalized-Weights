@@ -1,154 +1,32 @@
-library(easypackages)
-libraries("readxl","openxlsx","neuralnet","NeuralNetTools",
-          "Rcpp","RSNNS","carData","car","MASS","psych","forcats",
-          "ggplot2","ggpubr","gridExtra","ppcor","dominanceanalysis")
-mydata <- read.xlsx("D:/ANN.xlsx")
-# *********** Identify the following parameters before starting **** 
-RD <-3   # Number of trials for random data
-RW <- 3    # Number of trials for random weights
-Runs <- 3  # Number of best runs of random data and random weights
-# 2Xf2E6aEU7n685eHEbXGYHrmWn2y7a62UWBrtZzodVdD***********************
-Inp <- ncol(mydata) - 1
+library(openxlsx)
+library(neuralnet)
+library(RSNNS)
+library(NeuralNetTools)
+library(forcats)
+library(ggplot2)
+mydata <- read.xlsx(file.choose())
+Inp <- base::ncol(mydata) - 1
 Nr_of_int <- Inp  * (Inp - 1)/2
-AE <- Inp + Nr_of_int  # all effects main + interaction
-NrHidden <- round(Inp * 1.6, 0)
+AE <- Inp + Nr_of_int  # all effects (main + interaction)
+NrHidden <- base::round(Inp * 1.6, 0)
 partition <- 0.75  #** partitioning ratio of data into train and test
-err <- array(0, dim = c(RD, RW))
-indx <- array(0, dim = c(partition * nrow(mydata), RD))
-IHW <- array(0, dim = c(Inp + 1, NrHidden, RD, RW))
-IHSW <- array(0, dim = c(Inp + 1, NrHidden, RD, RW))
-HOW <- array(0, dim = c(NrHidden + 1, RD, RW))
-TrNrmse <- array(0, dim = c(RD, RW))
-TeNrmse <- array(0, dim = c(RD, RW))
-trainIndex <- sample(1:nrow(mydata), partition * nrow(mydata))
-RN <- nrow(mydata) - length(trainIndex) # row number of test data
-nn_Teoutput <- array(0, dim = c(RN, RD, RW))
-avg <- array(0, dim = c(3, AE, Runs))  # average of direct effect and interaction over runs
-deint <- array(0, dim = c(length(trainIndex), AE, Runs))  # average of MGW over runs
-nn_Troutput <- array(0, dim = c(length(trainIndex), RD, RW))
-tableMS <- as.data.frame(matrix(nrow = Runs, ncol = (ncol(mydata) - 1)))
-GAM <- as.data.frame(matrix(nrow = Runs, ncol = (ncol(mydata) - 1)))
-IGAM <- as.data.frame(matrix(nrow = Runs, ncol = (ncol(mydata) - 1)))
-tableGW <- as.data.frame(matrix(nrow = Runs, ncol = (ncol(mydata) - 1)))
-tableCW <- as.data.frame(matrix(nrow = Runs, ncol = (ncol(mydata) - 1)))
-tablepd <- as.data.frame(matrix(nrow = Runs, ncol = (ncol(mydata) - 1)))
-tableda <- as.data.frame(matrix(nrow = (ncol(mydata) - 1)), ncol = Runs)
-for (R in 1:Runs) {
-  for (i in 1:RD) {
-    trainingIndex <- sample(1:nrow(mydata), partition * nrow(mydata))
-    indx[, i] <- trainingIndex
-    trainingData <- data.frame(round(normalizeData(mydata[indx[, i], ], "0_1"), 4))
-    testingData <- data.frame(round(normalizeData(mydata[-indx[, i], ], "0_1"), 4))
-    names(trainingData) <- colnames(mydata)
-    names(testingData) <- colnames(mydata)
-    Y_trainData <- normalizeData(mydata[indx[, i], ncol(mydata)], "0_1")
-    Y_testData <- normalizeData(mydata[-indx[, i], ncol(mydata)], "0_1")
-    for (j in 1:RW) {
-      y <- colnames(trainingData[ncol(mydata)])
-      x <- colnames(trainingData[-ncol(mydata)])
-      formla <- as.formula(paste(y, paste(x, collapse = " + "), sep = " ~ "))
-      nn <- neuralnet(formla, data = trainingData, algorithm = "backprop", threshold = 0.01, learningrate = 0.01, 
-                      hidden = NrHidden, act.fct = "logistic", linear.output = F)
-      # ******** training data ***************
-      nn_Trpredict <- neuralnet::compute(nn, trainingData)
-      nn_Troutput[, i, j] <- denormalizeData(nn_Trpredict$net.result, getNormParameters(Y_trainData))
-      TractualMean <- mean(mydata[indx[, i], ncol(mydata)][[1]])
-      TrNrmse[i, j] <- (1/TractualMean) * (sqrt(sum((nn_Troutput[, i, j] - mydata[indx[, i], 
-                                                                                  ncol(mydata)])^2)/nrow(trainingData))) * 100
-      # ******* testing data *****************
-      nn_Tepredict <- neuralnet::compute(nn, testingData)
-      nn_Teoutput[, i, j] <- denormalizeData(nn_Tepredict$net.result, getNormParameters(Y_testData))
-      TeactualMean <- mean(mydata[-indx[, i], ncol(mydata)][[1]])
-      TeNrmse[i, j] <- (1/TeactualMean) * (sqrt(sum((nn_Teoutput[, i, j] - mydata[-indx[, i], 
-                                                                                  ncol(mydata)])^2)/nrow(testingData))) * 100
-      IHSW[, , i, j] <- nn$startweights[[1]][[1]]
-      IHW[, , i, j] <- nn$weights[[1]][[1]]
-      HOW[, i, j] <- nn$weights[[1]][[2]]
-      err[i, j] <- nn$result.matrix[1, 1]
-    }
-  }
-  min(err)
-  min(TeNrmse)
-  errpos <- which(TeNrmse == min(TeNrmse), arr.ind = TRUE)
-  errbestRow <- errpos[1, 1]  #**** Best random data
-  errbestCol <- errpos[1, 2]  #**** best rep for best random data
-  # ********** use best weights *******************
-  IH_W <- IHW[, , errbestRow, errbestCol]
-  HO_W <- HOW[, errbestRow, errbestCol]
-  Sqdif_IH <- (IHW[, , errbestRow, errbestCol][-1, ] - IHSW[, , errbestRow, errbestCol][-1, ])^2
-  # ************ Olden *****************
-  s0<-array(0, dim = c(Inp, NrHidden))
-  sums0<-c()
-  for (x in 1:Inp) {
-    for (y in 1:NrHidden) {
-      s0[x,y] <- IH_W[x+1,y] * HO_W[y+1]
-    }
-  }
-  sums0<-apply(s0,1,sum)
-  for (d in 1:Inp) {
-    tableCW[R, d] <- abs(sums0[d])/sum(abs(sums0))
-  }
-  # *********** Most Squares method *************
-  for (d in 1:Inp) {
-    tableMS[R, d] <- round(sum(Sqdif_IH[d, ])/sum(Sqdif_IH), 4)
-  }
-  # ********** garson algorithm ********
-  s1<-array(0, dim = c(Inp, NrHidden))
-  sums1<-c()
-  for (x in 1:Inp) {
-    for (y in 1:NrHidden) {
-      s1[x,y] <- abs(IH_W[x+1,y] * HO_W[y+1])
-    }
-  }
-  sums1<-apply(s1,2,sum)
-  s2<-array(0, dim = c(Inp, NrHidden))
-  sums2<-c()
-  for (x in 1:Inp) {
-    for (y in 1:NrHidden) {
-      s2[x,y] <- abs(s1[x,y]/sums1[y])
-    }
-  }
-  sums2<-apply(s2,1,sum)
-  GA<-sums2/sum(sums2)
-  
-  for (d in 1:Inp) {
-    GAM[R, d] <- GA[d]
-  }
-  # ***** Improved garson *************
-  sumi<-apply(abs(IH_W[-1,]),2,sum)
-  s3<-array(0, dim = c(Inp, NrHidden))
-  for (x in 1:Inp) {
-    for (y in 1:NrHidden) {
-      s3[x,y] <- abs((IH_W[x+1,y] * HO_W[y+1]))/sumi[y]
-    }
-  }
-  sums3<-apply(s3,1,sum)
-  IGA<-sums3/sum(s3)
-  
-  for (d in 1:Inp) {
-    IGAM[R, d] <- IGA[d]
-  }
-  # Generalized Weights of inputs without interaction
-  RGW <- as.data.frame(nn$generalized.weights)
-  total <- c()
-  for (f in 1:Inp) {
-    total[f] <- sum(RGW[,f])
-  }
-  for (g in 1:Inp) {
-    tableGW[R,g] <- abs(total[g])/sum(abs(total))
-  }
-  # ********* dominance analysis ******
-  lm.da<-lm(formla,trainingData)
-  da<-dominanceAnalysis(lm.da)
-  tableda[,R] <- da$contribution.average
-  # 2Xf2E6aEU7n685eHEbXGYHrmWn2y7a62UWBrtZzodVdD*
+RI<-array(0,dim = c(AE,AE,3))
+for (xx in 1:AE) {
+  trainingIndex <- sample(1:base::nrow(mydata), partition * base::nrow(mydata))
+  indx <- base::sample(1:base::nrow(mydata), 0.75 * base::nrow(mydata))
+  trainingData <- data.frame(base::round(RSNNS::normalizeData(mydata[indx,],"0_1"),4))
+  testingData <- data.frame(base::round(RSNNS::normalizeData(mydata[-indx,],"0_1"),4))
+  names(trainingData)<-colnames(mydata)
+  names(testingData)<- colnames(mydata)
+  y <- colnames(trainingData[base::ncol(mydata)])
+  x <- colnames(trainingData[-base::ncol(mydata)])
+  formla <- stats::as.formula(paste(y, paste(x, collapse = " + "),sep = " ~ "))
+  nn <- neuralnet::neuralnet(formla, data = trainingData, algorithm = "backprop", threshold = 0.01, learningrate = 0.01,
+                             hidden = NrHidden, act.fct = "logistic", linear.output = F)
+  IH_W <- nn$weights[[1]][[1]]
+  HO_W <- nn$weights[[1]][[2]]
+  # ***********************
   HU <- NrHidden
-  trainingData <- data.frame(round(normalizeData(mydata[indx[, errbestRow], ], "0_1"), 4))
-  testingData <- data.frame(round(normalizeData(mydata[-indx[, errbestRow], ], "0_1"), 4))
-  names(trainingData) <- colnames(mydata)
-  names(testingData) <- colnames(mydata)
-  Y_trainBestData <- normalizeData(mydata[indx[, errbestRow], ncol(mydata)], "0_1")
-  Y_testBestData <- normalizeData(mydata[-indx[, errbestRow], ncol(mydata)], "0_1")
   # hold bias and input values (bias = 1)
   Inputs <- array(1, dim = c(length(trainingIndex), Inp + 1))
   for (k in 1:length(trainingIndex)) {
@@ -168,41 +46,15 @@ for (R in 1:Runs) {
   }
   Sigm <- 1/(1 + exp(-(HNO)))
   # ************ Calculate generalized weights
-  GWtable <- array(0, dim = c(length(trainingIndex), ncol(mydata) - 1))
-  colnames(GWtable) <- colnames(mydata[-(ncol(mydata))])
+  GWtable <- array(0, dim = c(length(trainingIndex),
+                              base::ncol(mydata) - 1))
+  colnames(GWtable) <- colnames(mydata[-(base::ncol(mydata))])
   for (a in 1:Inp) {
     for (b in 1:length(trainingIndex)) {
       for (c in 1:HU) {
         GWtable[b, a] <- GWtable[b, a] + (Sigm[b, c] * (1 - Sigm[b, c]) * IH_W[a + 1, c] * HO_W[c + 1])
       }
     }
-  }
-  # ****** partial derivatives *********
-  PDtable <- array(0, dim = c(length(trainingIndex), ncol(mydata) - 1))
-  colnames(PDtable) <- colnames(mydata[-(ncol(mydata))])
-  PDtable1 <- array(0, dim = c(length(trainingIndex), ncol(mydata) - 1))
-  colnames(PDtable1) <- colnames(mydata[-(ncol(mydata))])
-  PDtable2 <- array(0, dim = c(length(trainingIndex), ncol(mydata) - 1))
-  colnames(PDtable2) <- colnames(mydata[-(ncol(mydata))])
-  for (a in 1:Inp) {
-    for (b in 1:length(trainingIndex)) {
-      for (c in 1:HU) {
-        PDtable[b, a] <- PDtable[b, a] + (((IH_W[a + 1, c] * ((1/Sigm[b, c])-1))/(1/Sigm[b, c])) * Sigm[b, c])
-        PDtable1[b, a] <- PDtable1[b, a] + (Sigm[b, c] * (1-Sigm[b, c]) * IH_W[a + 1, c] * HO_W[c + 1])
-      }
-    }
-  }
-  pd<-c()
-  pd<-apply(PDtable,2,sum)
-  for (a in 1:Inp) {
-    for (b in 1:length(trainingIndex)) {
-      PDtable2[b, a] <- (PDtable1[b, a] * pd[a])^2
-    }
-  }
-  pdSum<-apply(PDtable2,2,sum)
-  pdSum1<-pdSum/sum(pdSum)
-  for (g in 1:Inp) {
-    tablepd[R,g] <- pdSum1[g]
   }
   # *************** Hidden outputs for Main effect
   MainE <- array(0, dim = c(length(trainingIndex), HU, Inp))
@@ -219,8 +71,8 @@ for (R in 1:Runs) {
   }
   SigMainE <- 1/(1 + exp(-(MainE)))
   # ************ generalized weights for main effect
-  MainGW <- array(0, dim = c(length(trainingIndex), ncol(mydata) - 1))
-  colnames(MainGW) <- colnames(mydata[-(ncol(mydata))])
+  MainGW <- array(0, dim = c(length(trainingIndex), base::ncol(mydata) - 1))
+  colnames(MainGW) <- colnames(mydata[-(base::ncol(mydata))])
   for (s in 1:Inp) {
     for (t in 1:length(trainingIndex)) {
       for (u in 1:HU) {
@@ -245,25 +97,42 @@ for (R in 1:Runs) {
     totalvar = 0
     totalsum = 0
     for (n in 1:(Inp + Nr_of_int)) {
-      totalvar <- totalvar + var(MGWMEInt[, n])
-      totalsum <- totalsum + abs(sum(MGWMEInt[, n]))
+      totalvar <- totalvar + stats::var(MGWMEInt[, n])
+      totalsum <- totalsum + abs(base::sum(MGWMEInt[, n]))
     }
     for (m in 1:3) {
       for (n in 1:(Inp + Nr_of_int)) {
         if (m == 1) {
-          tableMEInt[m, n] <- round(abs(sum(MGWMEInt[, n]))/totalsum, 4)
+          tableMEInt[m, n] <- base::round(abs(base::sum(MGWMEInt[, n]))/totalsum, 4)
         } else if (m == 2) {
-          tableMEInt[m, n] <- round(var(MGWMEInt[, n]), 4)
+          tableMEInt[m, n] <- base::round(stats::var(MGWMEInt[, n]), 4)
         } else {
-          tableMEInt[m, n] <- round(sum(MGWMEInt[, n]), 4)
+          tableMEInt[m, n] <- round(base::sum(MGWMEInt[, n]), 4)
         }
       }
     }
     # ***** Print results for best runs
-    print(avg[, , R] <- tableMEInt[, ])
-    colnames(MGWMEInt) <- c()
-    AMGW <- as.matrix(MGWMEInt)
-    deint[, , R] <- AMGW[, ]
+    mylist <- list()
+    int<-paste(colnames(mydata[1]), colnames(mydata[2]), sep = "*")
+    mylist <- c(colnames(mydata[1]),colnames(mydata[2]),int)
+    rownames(tableMEInt) <- c("Rel.Imp. based on 100%", "Variance of MGW", "Sum of MGW")
+    colnames(tableMEInt) <- mylist
+    NN_Output <- stats::predict(nn,testingData)
+    actual <- testingData[base::ncol(mydata)]
+    options(digits = 3)
+    df<-array(0,dim=c(1,AE))
+    colnames(df) = mylist
+    for (r in 1:AE) {
+      df[1,r]<-round(tableMEInt[1,r]*(stats::cor(NN_Output,actual))^2,4)
+    }
+    RS<-round(cor(NN_Output,actual)^2,3)
+    rownames(df)<-paste("Rel.Imp.based on R Sq.","(",RS,")", sep = "")
+    df1<-rbind(df,tableMEInt)
+    AllMainEffect<-rowSums(df1[,1:Inp])
+    AllInteractionEffect<-df1[,3]
+    df1<-cbind(df1,Total.M.E=AllMainEffect,Total.I.E=AllInteractionEffect)
+    se[xx,]<-df1[2,1:AE]
+    mgwsum[xx,]<-df1[4,1:AE]
   } else {
     # ********* if inputs more than 2 do the following
     # ********* hidden output for two way interaction
@@ -351,7 +220,7 @@ for (R in 1:Runs) {
     
     for (i in 1:Nr_of_int) {
       for (p in 1:length(trainingIndex)) {
-        intmgw[p, i] <- intmgw[p, i] + ((TwoWayGW[p, s[i,1]]+TwoWayGW[p, s[i,2]]) - MESum[p, i])/2
+        intmgw[p, i] <- intmgw[p, i] + ((TwoWayGW[p, s[i,1]] + TwoWayGW[p, s[i,2]]) - MESum[p, i])/2
       }
     }
     # 2Xf2E6aEU7n685eHEbXGYHrmWn2y7a62UWBrtZzodVdD
@@ -359,174 +228,87 @@ for (R in 1:Runs) {
     totalvar = 0
     totalsum = 0
     for (n in 1:(Inp + Nr_of_int)) {
-      totalvar <- totalvar + var(MGWMEInt[, n])
-      totalsum <- totalsum + abs(sum(MGWMEInt[, n]))
+      totalvar <- totalvar + stats::var(MGWMEInt[, n])
+      totalsum <- totalsum + abs(base::sum(MGWMEInt[, n]))
     }
     for (m in 1:3) {
       for (n in 1:(Inp + Nr_of_int)) {
         if (m == 1) {
-          tableMEInt[m, n] <- round(abs(sum(MGWMEInt[, n]))/totalsum, 4)
+          tableMEInt[m, n] <- round(abs(base::sum(MGWMEInt[, n]))/totalsum, 4)
         } else if (m == 2) {
-          tableMEInt[m, n] <- round(var(MGWMEInt[, n]), 4)
+          tableMEInt[m, n] <- round(stats::var(MGWMEInt[, n]), 4)
         } else {
-          tableMEInt[m, n] <- round(sum(MGWMEInt[, n]), 4)
+          tableMEInt[m, n] <- round(base::sum(MGWMEInt[, n]), 4)
         }
       }
     }
     # Print results for best runs
-    print(avg[, , R] <- tableMEInt[, ])
-    colnames(MGWMEInt) <- c()
-    AMGW <- as.matrix(MGWMEInt)
-    deint[, , R] <- AMGW[, ]
-  }  # difference between 2 inputs and more than 2 inputs
-}  # end of runs looping
-# average of main effect, interaction, variance, and sum
-meanpara <- array(0, dim = c(3, AE))
-SEpara <- array(0, dim = c(2, AE))
-for (i in 1:3) {
-  for (j in 1:AE) {
-    sumt = 0
-    for (k in 1:Runs) {
-      sumt <- sumt + (avg[i, j, k])
+    mylist <- list()
+    for (x in 1:Nr_of_int) {
+      for (y in pair[x]) {
+        mylist[x] <- paste(colnames(mydata[pair[x,1]]), colnames(mydata[pair[x,2]]), sep = "*")
+      }
     }
-    meanpara[i, j] <- round((sumt/Runs), 4)
-  }
-}
-# ***************************************
-i=1
-s<-c()
-pair<-array(0,dim=c((Inp*(Inp-1))/2,2))
-for (x in 1:(Inp-1)) {
-  for (y in x:x) {
-    for (z in (y+1):Inp) {
-      pair[i,1]<-y
-      pair[i,2]<-z
-      i=i+1
+    rownames(tableMEInt) <- c("Rel.Imp. based on 100%", "Variance of MGW", "Sum of MGW")
+    colnames(tableMEInt) <- c(colnames(mydata[-(base::ncol(mydata))]), mylist)
+    NN_Output <- stats::predict(nn,testingData)
+    actual <- testingData[base::ncol(mydata)]
+    options(digits = 3)
+    df<-array(0,dim=c(1,AE))
+    colnames(df)=c(colnames(mydata[-(base::ncol(mydata))]), mylist)
+    for (r in 1:AE) {
+      df[1,r]<-round(tableMEInt[1,r]*(stats::cor(NN_Output,actual))^2,4)
     }
+    RS<-base::round(stats::cor(NN_Output,actual)^2,3)
+    rownames(df)<-base::paste("Rel.Imp.based on R Sq.","(",RS,")", sep = "")
+    df1<-base::rbind(df,tableMEInt)
+    AllMainEffect<-base::rowSums(df1[,1:Inp])
+    AllInteractionEffect<-base::rowSums(df1[,(Inp + 1):base::ncol(df1)])
+    df1<-base::cbind(df1,Total.M.E=AllMainEffect,Total.I.E=AllInteractionEffect)
+    RI[xx,,1]<-df1[1,1:AE]
+    RI[xx,,2]<-df1[2,1:AE]
+    RI[xx,,3]<-df1[4,1:AE]
   }
 }
-mylist <- list()
-for (x in 1:Nr_of_int) {
-  for (y in pair[x]) {
-    mylist[x] <- paste(colnames(mydata[pair[x,1]]), colnames(mydata[pair[x,2]]), sep = "*")
-  }
-}
-colnames(meanpara) <- c(colnames(mydata[-(ncol(mydata))]), mylist)
-rownames(meanpara) <- c("Rel.Imp.proportion of 100%", "Variance of MGW", "Sum of MGW")
-colnames(SEpara) <- c(colnames(mydata[-(ncol(mydata))]), mylist)
-rownames(SEpara) <- c("S.E.", "S.D.")
-#meanpara
-# ****************************************
-for (x in 1:2) {
-  for (y in 1:(Inp + Nr_of_int)) {
-    if (x == 1) {
-      SEpara[x, y] <- round((sd(avg[x, y, ])/sqrt(Runs)), 4)
-    } else {
-      SEpara[x, y] <- round(sd(avg[x, y, ]), 4)
-    }
-  }
-}
-SEpara
-# mean of MGW over runs 
-meanMGW <- array(0, dim = c(length(trainIndex), AE))
-for (i in 1:AE) {
-  for (j in 1:length(trainIndex)) {
-    sumt = 0
-    for (k in 1:Runs) {
-      sumt <- sumt + (deint[j, i, k])
-    }
-    sumt <- sumt/Runs
-    meanMGW[j, i] <- sumt
-  }
-}
-# correlation, partial correlation, and regression based on last run
-y <- colnames(mydata[ncol(mydata)])
-x <- colnames(mydata[-ncol(mydata)])
-Regformulax<-paste(x,collapse = " + ")
-Regformula<-as.formula(paste(y, Regformulax, sep = " ~ "))
-cor(trainingData)
-pc<-pcor(trainingData)
-pc$estimate
-pc$p.value
-lmMod <- lm(Regformula, data = trainingData)
-summary(lmMod)
-vif(lmMod)
-anova(lmMod) # type | sum squares
-Anova(lmMod) # type || sum squares
-options(contrasts=c("contr.sum","contr.poly")) # type ||| sum squares
-Anova(lmMod,type = 3)
-# **************************************
-alleffects<-data.frame(t(avg[1,,]))
-mainint <- unlist(c(colnames(mydata[-(ncol(mydata))]), mylist))
-colnames(alleffects) <-mainint
-InpVars<-colnames(mydata[-(ncol(mydata))])
-rownames(tableda)<-InpVars
-names(tableMS) <- InpVars;names(GAM) <- InpVars;names(IGAM) <-InpVars;names(tableGW)<-InpVars
-names(tableCW) <-InpVars;names(tablepd) <-InpVars
-# ***************************************************
-GWTable<-describe(tableGW, skew = F, ranges = TRUE)# generalized weights
-MSTable<-describe(tableMS, skew = F, ranges = TRUE)# most squares
-GATable<-describe(GAM, skew = F, ranges = TRUE)# garson algorithm
-IGATable<-describe(IGAM, skew = F, ranges = TRUE)# improved garson algorithm
-OTable<-describe(tableCW, skew = F, ranges = TRUE)# olden method
-PartialD<-describe(tablepd, skew = F, ranges = TRUE)
-DATable<-describe(data.frame(t(tableda)), skew = F, ranges = TRUE)
-AlleffectsTable<-describe(alleffects, skew = F, ranges = TRUE)
-GWTable;MSTable;GATable;IGATable;OTable;PartialD;DATable;AlleffectsTable
-#meanpara # modified generalized weights
-#************* RI based on R2 ***********************
-NN_Output <- nn_Teoutput[, errbestRow, errbestCol]
-actual <- denormalizeData(testingData[ncol(mydata)], getNormParameters(Y_testBestData))
-options(digits = 3)
-df<-array(0,dim=c(1,AE))
-colnames(df)=c(colnames(mydata[-(ncol(mydata))]), mylist)
-for (r in 1:AE) {
-  df[1,r]<-round(meanpara[1,r]*(cor(NN_Output,actual))^2,4)
-}
-RS<-round(cor(NN_Output,actual)^2,3)
-rownames(df)<-paste("Rel.Imp.proportion of R Sq.","(",RS,")", sep = "")
-df1<-rbind(df,meanpara)
-AllMainEffect<-rowSums(df1[,1:Inp])
-if(Inp ==2){
-  AllInteractionEffect<-df1[,3]
-} else {
-  AllInteractionEffect<-rowSums(df1[,(Inp + 1):ncol(df1)])
-}
-df2<-cbind(df1,Total.M.E=AllMainEffect,Total.I.E=AllInteractionEffect)
-df2
-#******************************
-table_list <- list(GWTable,MSTable,GATable,IGATable,OTable,PartialD,DATable)
-title_vector <- c("Generalized weights","Most squares algorithm","Garson's algorithm","Improved Garson's algorithm",
-                  "Connection weights algorithm","Partial derivatives","Dominance Analysis")
-plot_list <- list()
-for (i in 1:length(table_list)) {
-  dat=table_list[[i]]
-  plot_list[[i]] <- ggplot(dat,aes(x = fct_inorder(rownames(dat)),y = mean, fill = rownames(dat)))+
-    geom_bar(stat = "identity", position = "dodge") + 
-    geom_errorbar(aes(ymin = mean - se, ymax = mean + se), position = position_dodge(0.5), width = 0.2) +
-    xlab(expression(Main~effects)) +
-    ylab(expression(Relative~Importance)) +
-    theme(axis.text.x=element_text(color = "blue", size = 10, angle = 30, vjust = 0.8, hjust = 0.8)) +
-    theme(legend.position="none") + 
-    ggtitle(title_vector[i]) + 
-    theme(plot.title = element_text(color = "red", size = 12))
-}
-do.call(grid.arrange,plot_list)
-
-AeTable<-cbind(AlleffectsTable,Sum=df1[4,])
-
-ggplot(AeTable,aes(x = fct_inorder(rownames(AlleffectsTable)),y = mean, fill = rownames(AlleffectsTable))) +
-  geom_bar(stat = "identity", position = "dodge") +
-  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), position = position_dodge(0.5), width = 0.2) + 
-  xlab(expression(Main~effects~and~interactions)) +
-  ylab(expression(Relative~Importance)) +
-  geom_text(aes(x = as.character( fct_inorder(rownames(AlleffectsTable))), 
-              y = mean + se + ((mean + se)*0.01), label = sprintf("%0.2f", Sum)),
-            hjust = 0.5, vjust = -0.5, size = 4, colour = "red", fontface = "bold", angle = 360) +
-  theme(axis.text.x = element_text(color = "blue", size = 10, angle = 30, vjust = 0.8, hjust = 0.8)) +
-  theme(legend.position="none") + 
-  ggtitle("Modified Generalized Weights") + 
-  theme(plot.title = element_text(color = "red", size = 12))
+RIdf<-array(0,dim = c(5,AE))
+RIdf[1,]<-apply(RI[,,1],2,mean)
+RIdf[2,] <- apply(RI[,,1],2,sd)/sqrt(AE)
+RIdf[3,]<-apply(RI[,,2],2,mean)
+RIdf[4,] <- apply(RI[,,2],2,sd)/sqrt(AE)
+RIdf[5,]<-apply(RI[,,3],2,mean)
+rownames(RIdf) <- c(paste("RI sum to R.sq","(",round(sum(RIdf[1,]),3),")", sep = ""),
+                    "Std Error","RI sum to 1","Std Error","Sum of MGW")
+colnames(RIdf)<-colnames(df)
+RIdf1<-t(RIdf)
+print(RIdf1)
+RIdf2<-as.data.frame(RIdf1)
+colnames(RIdf2)<-c("RI.Rsq","SE.Rsq","RI.1","SE.RI1","Sum")
 
 plotnet(nn, alpha.val = 0.5, apad_x = 0.8, max_sp = F, pos_col="blue", neg_col = "grey", 
         circle_col = rainbow(NrHidden), bord_col = 'black')
+
+ggplot(RIdf2,aes(x = fct_inorder(rownames(RIdf2)),y = RI.Rsq, fill = rownames(RIdf2))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = RI.Rsq - SE.Rsq, ymax = RI.Rsq + SE.Rsq), position = position_dodge(0.5), width = 0.2) + 
+  xlab(expression(Main~effects~and~interactions)) +
+  ylab(expression(Relative~Importance)) +
+  geom_text(aes(x = as.character( fct_inorder(rownames(RIdf2))), 
+                y = RI.Rsq + SE.Rsq + ((RI.Rsq + SE.Rsq)*0.01), label = sprintf("%0.2f", Sum)),
+            hjust = 0.5, vjust = -0.5, size = 4, colour = "red", fontface = "bold", angle = 360) +
+  theme(axis.text.x = element_text(color = "blue", size = 10, angle = 30, vjust = 0.8, hjust = 0.8)) +
+  theme(legend.position="none") + 
+  ggtitle("Relative Importance sum to R2") + 
+  theme(plot.title = element_text(color = "red", size = 12))
+
+ggplot(RIdf2,aes(x = fct_inorder(rownames(RIdf1)),y = RI.1, fill = rownames(RIdf1))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_errorbar(aes(ymin = RI.1 - SE.RI1, ymax = RI.1 + SE.RI1), position = position_dodge(0.5), width = 0.2) + 
+  xlab(expression(Main~effects~and~interactions)) +
+  ylab(expression(Relative~Importance)) +
+  geom_text(aes(x = as.character( fct_inorder(rownames(RIdf2))), 
+                y = RI.1 + SE.RI1 + ((RI.1 + SE.RI1)*0.01), label = sprintf("%0.2f", Sum)),
+            hjust = 0.5, vjust = -0.5, size = 4, colour = "red", fontface = "bold", angle = 360) +
+  theme(axis.text.x = element_text(color = "blue", size = 10, angle = 30, vjust = 0.8, hjust = 0.8)) +
+  theme(legend.position="none") + 
+  ggtitle("Relative Importance sum to 1") + 
+  theme(plot.title = element_text(color = "red", size = 12))
