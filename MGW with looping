@@ -131,8 +131,9 @@ for (xx in 1:AE) {
     AllMainEffect<-rowSums(df1[,1:Inp])
     AllInteractionEffect<-df1[,3]
     df1<-cbind(df1,Total.M.E=AllMainEffect,Total.I.E=AllInteractionEffect)
-    se[xx,]<-df1[2,1:AE]
-    mgwsum[xx,]<-df1[4,1:AE]
+    RI[xx,,1]<-df1[1,1:AE]
+    RI[xx,,2]<-df1[2,1:AE]
+    RI[xx,,3]<-df1[4,1:AE]
   } else {
     # ********* if inputs more than 2 do the following
     # ********* hidden output for two way interaction
