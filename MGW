@@ -1,7 +1,6 @@
 library(openxlsx)
 library(neuralnet)
 library(RSNNS)
-library(NeuralNetTools)
 library(forcats)
 library(ggplot2)
 mydata <- read.xlsx(file.choose())
