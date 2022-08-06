@@ -25,8 +25,7 @@ install.packages("forcats") # to keep the order of the variables the same in the
 
 Step #3: Copy the code to R source window if you have installed R studio, or copy the code to R console if you have not installed R studio.
 
-![4-7-2022 8-39-52 PM](https://user-images.githubusercontent.com/95976623/162273927-fdd4cea0-6958-4ec1-a5b8-dafd7514ee33.jpg)
-
+![8-6-2022 10-40-18 AM](https://user-images.githubusercontent.com/95976623/183241791-d735d4bf-42cc-4495-bb82-0942561877b7.jpg)
 
 Step #4: select all the code by right click  on R source window then choose select all, then hit the (run) button.You will be notified to choose your file. Once you have chosen your file, you will see the results in R console as the following:
 
