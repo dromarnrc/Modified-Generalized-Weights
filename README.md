@@ -25,11 +25,11 @@ install.packages("forcats") # to keep the order of the variables the same in the
 
 Step #3: Copy the code to R source window if you have installed R studio, or copy the code to R console if you have not installed R studio.
 
-![8-6-2022 10-40-18 AM](https://user-images.githubusercontent.com/95976623/183241791-d735d4bf-42cc-4495-bb82-0942561877b7.jpg)
+
 
 Step #4: select all the code by right click  on R source window then choose select all, then hit the (run) button.You will be notified to choose your file. Once you have chosen your file, you will see the results in R console as the following:
 
-![5-7-2022 8-07-32 PM](https://user-images.githubusercontent.com/95976623/167266651-dbe85500-dfa8-4c6f-b30b-1c7274a81d7e.jpg)
+
 
 
 The results show the relative importance of main effects (direct effects) of each input and the two way interaction effects between each pair of the input variables. The results are displayed based on R square and recalculated based on 100% for comparison. Also, the variance and the sum of the modified generalized weights are calculated, the variance indicates the variation while the sum indicates the direction of the effect. If the sum of the direct effect of an input is positive, this means that when this input increases the output increases and vice versa. If the sum of an interaction is positive, this means that when one input increases the effect of the other input on the output increases. If the sum of an interaction is negative, this means that when one input increases the effect of the other input on the output decreases. The results show the main and the interaction effects calculated based on sum to 1 and sum to R square as well as the standard error and generate the following figure:
