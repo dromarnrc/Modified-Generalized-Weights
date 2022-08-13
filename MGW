@@ -223,7 +223,6 @@ for (xx in 1:AE) {
         intmgw[p, i] <- intmgw[p, i] + ((TwoWayGW[p, s[i,1]] + TwoWayGW[p, s[i,2]]) - MESum[p, i])/2
       }
     }
-    # 2Xf2E6aEU7n685eHEbXGYHrmWn2y7a62UWBrtZzodVdD
     MGWMEInt <- cbind(MainGW, intmgw)
     totalvar = 0
     totalsum = 0
