@@ -16,7 +16,7 @@ install.packages("openxlsx") # for reading excel file
 
 install.packages("neuralnet") # for running neural network
 
-install.packages("RSNNS") # for normalizing data to be between 0 and 1
+install.packages("BBmisc") # for normalizing data to be between 0 and 1 or -1 and 1
 
 install.packages("ggplot2") # to generate the figures
 
