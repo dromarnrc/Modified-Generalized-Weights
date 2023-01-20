@@ -8,7 +8,7 @@ Inp <- base::ncol(mydata) - 1
 Nr_of_int <- Inp  * (Inp - 1)/2
 AE <- Inp + Nr_of_int  # all effects (main + interaction)
 NrHidden <- base::round(Inp * 1.6, 0)
-partition <- 0.75  #** partitioning ratio of data into train and test
+indx <- 0.75  #** partitioning ratio of data into train and test
 RI<-array(0,dim = c(AE,AE,3))
 for (xx in 1:AE) {
   trainingIndex <- sample(1:base::nrow(mydata), partition * base::nrow(mydata))
