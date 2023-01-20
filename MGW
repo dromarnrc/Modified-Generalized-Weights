@@ -8,10 +8,8 @@ Inp <- base::ncol(mydata) - 1
 Nr_of_int <- Inp  * (Inp - 1)/2
 AE <- Inp + Nr_of_int  # all effects (main + interaction)
 NrHidden <- base::round(Inp * 1.6, 0)
-indx <- 0.75  #** partitioning ratio of data into train and test
 RI<-array(0,dim = c(AE,AE,3))
 for (xx in 1:AE) {
-  trainingIndex <- sample(1:base::nrow(mydata), partition * base::nrow(mydata))
   indx <- base::sample(1:base::nrow(mydata), 0.75 * base::nrow(mydata))
   # change the range to c(-1,1) if you willyou use "tanh" activation function
   trainingData <- data.frame(base::round(BBmisc::normalize(mydata[indx,],method = "range", range = c(0, 1),4)))
