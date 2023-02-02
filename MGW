@@ -21,9 +21,9 @@ for (xx in 1:AE) {
   x <- colnames(trainingData[-base::ncol(mydata)])
   formla <- stats::as.formula(paste(y, paste(x, collapse = " + "),sep = " ~ "))
   nn <- neuralnet::neuralnet(formla, data = trainingData, algorithm = "backprop", threshold = 0.01, learningrate = 0.01,
-                             hidden = NrHidden, act.fct = "logistic", linear.output = F)
-  IH_W <- nn$weights[[1]][[1]]
-  HO_W <- nn$weights[[1]][[2]]
+                             rep = 5, hidden = NrHidden, act.fct = "logistic", linear.output = F)
+  IH_W <- nn$weights[[which.min(nn$result.matrix[1,])]][[1]]
+  HO_W <- nn$weights[[which.min(nn$result.matrix[1,])]][[2]]
   # ***********************
   HU <- NrHidden
   # hold bias and input values (bias = 1)
