@@ -4,6 +4,7 @@ library(BBmisc)
 library(forcats)
 library(ggplot2)
 mydata <- read.xlsx(file.choose())
+mydata <- data.frame(BBmisc::normalize(mydata,method = "range", range = c(0, 1)))
 Inp <- base::ncol(mydata) - 1
 Nr_of_int <- Inp  * (Inp - 1)/2
 AE <- Inp + Nr_of_int  # all effects (main + interaction)
@@ -13,8 +14,8 @@ RI<-array(0,dim = c(AE,AE,3))
 for (xx in 1:AE) {
   trainingIndex <- sample(1:base::nrow(mydata), partition * base::nrow(mydata))
   indx <- base::sample(1:base::nrow(mydata), 0.75 * base::nrow(mydata))
-  trainingData <- data.frame(base::round(BBmisc::normalize(mydata[indx,],method = "range", range = c(0, 1)),4))
-  testingData <- data.frame(base::round(BBmisc::normalize(mydata[-indx,],method = "range", range = c(0, 1)),4))
+  trainingData <- data.frame(mydata[indx,])
+  testingData <- data.frame(mydata[-indx,])
   names(trainingData)<-colnames(mydata)
   names(testingData)<- colnames(mydata)
   y <- colnames(trainingData[base::ncol(mydata)])
