@@ -16,8 +16,7 @@ install.packages("openxlsx") # for reading excel file
 
 install.packages("neuralnet") # for running neural network
 
-install.packages("BBmisc") # for normalizing data to be between 0 and 1 for sigmoid activation function 
-or to be between -1 and 1 for tanh activation function.
+install.packages("BBmisc") # for normalizing data to be between 0 and 1 for sigmoid activation function.
 
 install.packages("ggplot2") # to generate the figures
 
