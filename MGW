@@ -13,7 +13,7 @@ partition <- 0.75  #partitioning ratio of data into train and test
 RI<-array(0,dim = c(AE,AE,3))
 for (xx in 1:AE) {
   trainingIndex <- sample(1:base::nrow(mydata), partition * base::nrow(mydata))
-  indx <- base::sample(1:base::nrow(mydata), 0.75 * base::nrow(mydata))
+  indx <- base::sample(1:base::nrow(mydata), partition * base::nrow(mydata))
   trainingData <- data.frame(mydata[indx,])
   testingData <- data.frame(mydata[-indx,])
   names(trainingData)<-colnames(mydata)
