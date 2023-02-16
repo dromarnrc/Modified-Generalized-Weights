@@ -1,7 +1,7 @@
 # Modified-Generalized-Weights
 A new method for modeling main effects and interactions of input variables in Artificial Neural Networks (ANNs). The method was published in a paper on 20 June 2022 at
 https://link.springer.com/article/10.1134/S1064229322080051 under the title of "Modeling Main and Interactional Effects of Some Physiochemical Properties of Egyptian Soils on Cation Exchange Capacity Via Artificial Neural Networks". In addition, a package of the new method has been built at https://CRAN.R-project.org/package=FRI.
-This code can be used for many inputs and one output with one hidden layer as interaction among inputs is assumed to occur in the first hidden layer. ANNs with one hidden layer are suitable for regression problems. While ANNs with many hidden layers are suitable for classification problems as ANNs need to comprehend something extremely convoluted, relevant, or non-self-evident, like image recognition.
+This code can be used for many inputs and one output with one hidden layer as interaction among inputs is assumed to occur in the first hidden layer. The method is restricted to the Sigmoid activation function and one hidden layer where ANNs with one hidden layer are suitable for regression problems, while ANNs with many hidden layers are suitable for classification problems as ANNs need to comprehend something extremely convoluted, relevant, or non-self-evident, like image recognition.
  
 How to use this code :
 
