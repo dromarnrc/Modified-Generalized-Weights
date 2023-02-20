@@ -5,7 +5,7 @@ This code can be used for many inputs and one output with one hidden layer as in
  
 How to use this code :
 
-Step #1: Create an Excel file containing data of input variables and 1 output (for example x1,x2,x3,x4,y).
+Step #1: Create an Excel file containing data of input variables and 1 output (for example x1,x2,x3,x4,x5,y).
 
 ![5-7-2022 8-05-26 PM](https://user-images.githubusercontent.com/95976623/167266623-450e0b8c-4f4a-4c1d-b5c1-87e9bda65bae.jpg)
 
