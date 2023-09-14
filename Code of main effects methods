@@ -1,6 +1,14 @@
-library(easypackages)
-libraries("openxlsx","neuralnet","NeuralNetTools","ggpmisc",
-          "Rcpp","RSNNS","psych","forcats","ggplot2","gridExtra")
+library(openxlsx)
+library(neuralnet)
+library(NeuralNetTools)
+library(ggpmisc)
+library(Rcpp)
+library(RSNNS)
+library(psych)
+library(gridExtra)
+library(BBmisc)
+library(forcats)
+library(ggplot2)
 mydata <- read.xlsx(file.choose())
 # *********** Identify the following parameters before starting **** 
 RD <- 3   # Number of trials for random data
